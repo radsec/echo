@@ -175,7 +175,7 @@ func ptr[T any](value T) *T {
 
 func TestToMultipleFields(t *testing.T) {
 	e := New()
-	req := httptest.NewRequest(http.MethodGet, "/?id=1&ID=2", nil)
+	req := httptest.NewRequest(http.MethodGet, "/?id=1&ID=2", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -291,7 +291,7 @@ func TestBindHeaderParam(t *testing.T) {
 
 func TestBindHeaderParamBadType(t *testing.T) {
 	e := New()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	req.Header.Set("Id", "salamander")
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -307,7 +307,7 @@ func TestBindHeaderParamBadType(t *testing.T) {
 
 func TestBindUnmarshalParam(t *testing.T) {
 	e := New()
-	req := httptest.NewRequest(http.MethodGet, "/?ts=2016-12-06T19:09:05Z&sa=one,two,three&ta=2016-12-06T19:09:05Z&ta=2016-12-06T19:09:05Z&ST=baz", nil)
+	req := httptest.NewRequest(http.MethodGet, "/?ts=2016-12-06T19:09:05Z&sa=one,two,three&ta=2016-12-06T19:09:05Z&ta=2016-12-06T19:09:05Z&ST=baz", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	result := struct {
@@ -566,7 +566,7 @@ func TestBindbindData(t *testing.T) {
 
 func TestBindParam(t *testing.T) {
 	e := New()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	c.SetPath("/users/:id/:name")
@@ -972,6 +972,14 @@ func TestDefaultBinder_BindBody(t *testing.T) {
 			expect:           &[]Node{{ID: 1, Node: ""}},
 			expectError:      "",
 		},
+		{ // rare case as GET is not usually used to send request no body
+			name:             "ok, query params bind to struct with: path + query + http.NoBody",
+			givenURL:         "/api/real_node/endpoint?node=xxx",
+			givenMethod:      http.MethodGet,
+			givenContentType: "",
+			givenContent:     http.NoBody,
+			expect:           &Node{ID: 0, Node: ""}, // path params or query params should not interfere with body
+		},
 		{ // rare case as GET is not usually used to send request body
 			name:             "ok, JSON GET bind to struct with: path + query + empty field in body",
 			givenURL:         "/api/real_node/endpoint?node=xxx",
@@ -1074,6 +1082,10 @@ func TestDefaultBinder_BindBody(t *testing.T) {
 				req.Header.Set(HeaderContentType, MIMEApplicationForm)
 			case MIMEApplicationJSON:
 				req.Header.Set(HeaderContentType, MIMEApplicationJSON)
+			case MIMETextXML:
+				req.Header.Set(HeaderContentType, MIMETextXML)
+			case MIMETextPlain:
+				req.Header.Set(HeaderContentType, MIMETextPlain)
 			}
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
